@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Mappings
+########################################
+# !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+# ELBAccountID: ... https://docs.aws.amazon.com/ja_jp/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+Mappings:
+  RegionMap:
+    us-east-1:
+      Name: uses1
+      ELBAccountID: 127311923021
+    us-west-1:
+      Name: usws1
+      ELBAccountID: 027434742980
+    ap-northeast-1:
+      Name: apne1
+      ELBAccountID: 582318560864
+    ap-northeast-3:
+      Name: apne3
+      ELBAccountID: 383597477331
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+
+#  S3BucketName: !Sub
+#    - "arn:aws:s3:::${PJName}-${EnvName}-${aws_region}-accesslog"
+#    - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+
+########################################
+# Resources
+########################################
+Resources:
+  S3BucketName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub
+        - "${PJName}-${EnvName}-${aws_region}-accesslog"
+        - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+      VersioningConfiguration:
+        Status: Enabled
+      # access control
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      Tags:
+        - Key: "PJ"
+          Value: !Sub ${PJName}
+        - Key: "Env"
+          Value: !Sub ${EnvName}
+  # ALB Access Log Policy
+  S3BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Sub
+        - "${PJName}-${EnvName}-${aws_region}-accesslog"
+        - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub
+                - "arn:aws:iam::${elb_account_id}:root"
+                - elb_account_id:
+                    !FindInMap [RegionMap, !Ref "AWS::Region", ELBAccountID]
+            Action: "s3:PutObject"
+            Resource: !Sub
+              - "arn:aws:s3:::${PJName}-${EnvName}-${aws_region}-accesslog/alb_access_log/AWSLogs/*"
+              - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+          - Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: "s3:PutObject"
+            Resource: !Sub
+              - "arn:aws:s3:::${PJName}-${EnvName}-${aws_region}-accesslog/alb_access_log/AWSLogs/*"
+              - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+            Condition:
+              StringEquals:
+                "s3:x-amz-acl": bucket-owner-full-control
+          - Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: "s3:GetBucketAcl"
+            Resource: !Sub
+              - "arn:aws:s3:::${PJName}-${EnvName}-${aws_region}-accesslog"
+              - aws_region: !FindInMap [RegionMap, !Ref "AWS::Region", Name]
+
+########################################
+# OutPuts
+########################################
+Outputs:
+  S3BucketName:
+    Value: !Ref S3BucketName

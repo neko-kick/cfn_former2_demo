@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  VPCCIDRBlock:
+    Description: VPC Cidr Block
+    Type: String
+    Default: "192.168.0.0/16"

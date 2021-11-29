@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  VpcId:
+    Description: Pub A Cidr Block
+    Type: AWS::EC2::VPC::Id
+    Default: "vpc-xxxxx"
+  MyIP:
+    Description: your my ip
+    Type: String
+    Default: 0.0.0.0/0
+
+########################################
+# Resource
+########################################
+Resources:
+  # wordpress
+  SgpWrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${PJName}-${EnvName}-sgp-wrp-001
+      GroupDescription: Allow SSH and HTTP access only MyIP
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # http
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref MyIP
+        # ssh
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIP
+      Tags:
+        - Key: "Name"
+          Value: !Sub ${PJName}-${EnvName}-sgp-wrp-001
+  # alb
+  SgpAlb:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${PJName}-${EnvName}-sgp-alb-001
+      GroupDescription: Allow HTTPS access All.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # httpa
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: "Name"
+          Value: !Sub ${PJName}-${EnvName}-sgp-alb-001
+  # ec2 from alb
+  SgpWrpFromAlb:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${PJName}-${EnvName}-sgp-wrp-002
+      GroupDescription: Allow HTTPS access All.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # http
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref SgpAlb
+        # ssh
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIP
+      Tags:
+        - Key: "Name"
+          Value: !Sub ${PJName}-${EnvName}-sgp-wrp-002
+
+########################################
+# Outputs
+########################################
+Outputs:
+  SgpWrpId:
+    Value: !Ref SgpWrp
+  SgpAlbId:
+    Value: !Ref SgpAlb
+  SgpWrpFromAlbId:
+    Value: !Ref SgpWrpFromAlb

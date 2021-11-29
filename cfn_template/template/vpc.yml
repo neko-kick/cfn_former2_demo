@@ -1,0 +1,232 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  VPCCidrBlock:
+    Description: VPC Cidr Block
+    Type: String
+    Default: "192.168.0.0/16"
+  SntPubACidrBlock:
+    Description: Pub A Cidr Block
+    Type: String
+    Default: "192.168.1.0/24"
+  SntPubCCidrBlock:
+    Description: Pub C Cidr Block
+    Type: String
+    Default: "192.168.2.0/24"
+  SntWapACidrBlock:
+    Description: Wap A Cidr Block
+    Type: String
+    Default: "192.168.11.0/24"
+  SntWapCCidrBlock:
+    Description: Wap C Cidr Block
+    Type: String
+    Default: "192.168.12.0/24"
+  SntRdsACidrBlock:
+    Description: Rds A Cidr Block
+    Type: String
+    Default: "192.168.21.0/24"
+  SntRdsCCidrBlock:
+    Description: Rds C Cidr Block
+    Type: String
+    Default: "192.168.22.0/24"
+
+########################################
+# Resource
+########################################
+Resources:
+  # --------------------
+  # VPC
+  # --------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-vpc
+  # --------------------
+  # IGW
+  # --------------------
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-igw
+  IGWAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref IGW
+      VpcId: !Ref VPC
+  # --------------------
+  # Subnet
+  # --------------------
+  # Pub
+  SntPubA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: !Ref SntPubACidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-puba-001
+  SntPubC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}c"
+      CidrBlock: !Ref SntPubCCidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-pubc-001
+  # Wap
+  SntWapA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: !Ref SntWapACidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-wapa-001
+  SntWapC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}c"
+      CidrBlock: !Ref SntWapCCidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-wapc-001
+  # Rds
+  SntRdsA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: !Ref SntRdsACidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-rdsa-001
+  SntRdsC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}c"
+      CidrBlock: !Ref SntRdsCCidrBlock
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-snt-rdsc-001
+  # --------------------
+  # Route Table
+  # --------------------
+  # Public RouteTable Create
+  RtbPub:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-rtb-pub-001
+  # WebAPP RouteTable Create
+  RtbWap:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-rtb-wap-001
+  # RDS RouteTable Create
+  RtbRds:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-rtb-rds-001
+  # --------------------
+  # Routing
+  # --------------------
+  # Public RTB Routing
+  PubRouting:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref RtbPub
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref IGW
+  # --------------------
+  # RTB Associate
+  # --------------------
+  # Pub
+  RtbPubAssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntPubA
+      RouteTableId: !Ref RtbPub
+  RtbPubCssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntPubC
+      RouteTableId: !Ref RtbPub
+  # Wap
+  RtbWapAssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntWapA
+      RouteTableId: !Ref RtbWap
+  RtbWapCssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntWapC
+      RouteTableId: !Ref RtbWap
+  # Rds
+  RtbRdsAssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntRdsA
+      RouteTableId: !Ref RtbRds
+  RtbRdsCssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref SntRdsC
+      RouteTableId: !Ref RtbRds
+
+########################################
+# Outputs
+########################################
+Outputs:
+  VpcId:
+    Value: !Ref VPC
+  SntPubAId:
+    Value: !Ref SntPubA
+  SntPubCId:
+    Value: !Ref SntPubC
+  SntWapAId:
+    Value: !Ref SntWapA
+  SntWapCId:
+    Value: !Ref SntWapC
+  SntRdsAId:
+    Value: !Ref SntRdsA
+  SntRdsCId:
+    Value: !Ref SntRdsC

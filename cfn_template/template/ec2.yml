@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  SntId:
+    Description: Pub A Cidr Block
+    Type: String
+    Default: "snt-xxxxx"
+  SgpId:
+    Description: Security Groups
+    Type: String
+    Default: "sgp-xxxxx"
+  AZ:
+    Description: Availability Zone
+    Type: String
+    AllowedValues:
+      - a
+      - c
+      - d
+    Default: a
+  ServerName:
+    Description: ServerName
+    Type: String
+    AllowedValues:
+      - wrp
+      - prx
+      - bst
+    Default: wrp
+  KeyPair:
+    Description: Key Pair Name
+    Type: String
+    Default: key-name
+########################################
+# Resource
+########################################
+Resources:
+  EC2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0e60b6d05dc38ff11"
+      InstanceType: "t2.micro"
+      AvailabilityZone: !Sub "${AWS::Region}${AZ}"
+      KeyName: !Ref KeyPair
+      SubnetId: !Ref SntId
+      EbsOptimized: false
+      SecurityGroupIds:
+        - !Ref SgpId
+      SourceDestCheck: true
+      Tags:
+        - Key: "Name"
+          Value: !Sub ${PJName}-${EnvName}-ec2-${ServerName}-001
+
+########################################
+# OutPuts
+########################################
+Outputs:
+  EC2Id:
+    Value: !Ref EC2

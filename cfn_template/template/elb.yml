@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  VpcId:
+    Description: VPC Id
+    # Type: String
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-xxx
+  SntPubAId:
+    Description: Snt Pub A Id
+    Type: String
+    Default: snt-xxx
+  SntPubCId:
+    Description: Snt Pub C Id
+    Type: String
+    Default: snt-xxx
+  #  SntWapAId:
+  #    Description: Snt Wap A Id
+  #    Type: String
+  #    Default: snt-xxx
+  #  SntWapCId:
+  #    Description: Snt Wap C Id
+  #    Type: String
+  #    Default: snt-xxx
+  ServerName:
+    Description: ServerName
+    Type: String
+    AllowedValues:
+      - wrp
+      - prx
+    Default: wrp
+  SgpAlbId:
+    Description: Sgp ALB Id
+    Type: String
+    Default: sgp-xxx
+  SgpEc2Id:
+    Description: Sgp EC2 Id
+    Type: String
+    Default: sgp-xxx
+  Ec2InstanceId:
+    Description: EC2 Instance Id
+    Type: String
+    Default: sgp-xxx
+  AcmArn:
+    Description: ACM Arn
+    Type: String
+    Default: xxxxx
+  S3BucketName:
+    Description: archive alb access log from S3 Bucket
+    Type: String
+    Default: xxxxx
+########################################
+# Resource
+########################################
+Resources:
+  # --------------------
+  # ALB Target Group
+  # --------------------
+  TGP:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: !Sub ${PJName}-${EnvName}-tgp-001
+      Protocol: "HTTP"
+      Port: 80
+      # healthcheck
+      HealthCheckEnabled: true
+      HealthCheckPath: "/healthcheck.html"
+      HealthCheckPort: "traffic-port"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      TargetType: "instance"
+      Matcher:
+        HttpCode: "200"
+      HealthyThresholdCount: 5
+      # tgp attribute
+      TargetGroupAttributes:
+        - Key: "stickiness.enabled"
+          Value: "false"
+        - Key: "deregistration_delay.timeout_seconds"
+          Value: "300"
+        - Key: "stickiness.app_cookie.cookie_name"
+          Value: ""
+        - Key: "stickiness.type"
+          Value: "lb_cookie"
+        - Key: "stickiness.lb_cookie.duration_seconds"
+          Value: "86400"
+        - Key: "slow_start.duration_seconds"
+          Value: "0"
+        - Key: "stickiness.app_cookie.duration_seconds"
+          Value: "86400"
+        - Key: "load_balancing.algorithm.type"
+          Value: "round_robin"
+      VpcId: !Ref VpcId
+      Targets:
+        - Id: !Ref Ec2InstanceId
+          Port: 80
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJName}-${EnvName}-tgp-001
+  # --------------------
+  # ALB LoadBalancer
+  # --------------------
+  ALB:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: !Sub ${PJName}-${EnvName}-alb-${ServerName}-001
+      Scheme: "internet-facing"
+      Type: "application"
+      Subnets:
+        - !Ref SntPubAId
+        - !Ref SntPubCId
+      SecurityGroups:
+        - !Ref SgpAlbId
+      IpAddressType: "ipv4"
+      LoadBalancerAttributes:
+        - Key: "access_logs.s3.enabled"
+          Value: "true"
+        - Key: "access_logs.s3.bucket"
+          Value: !Sub ${S3BucketName}
+        - Key: "access_logs.s3.prefix"
+          Value: "alb_access_log"
+        - Key: "idle_timeout.timeout_seconds"
+          Value: "60"
+        - Key: "deletion_protection.enabled"
+          Value: "false"
+        - Key: "routing.http2.enabled"
+          Value: "true"
+  # --------------------
+  # ALB Listner Group
+  # --------------------
+  Listner01:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: "HTTPS"
+      SslPolicy: "ELBSecurityPolicy-2016-08"
+      Certificates:
+        - CertificateArn: !Ref AcmArn
+      DefaultActions:
+        - Order: 1
+          TargetGroupArn: !Ref TGP
+          Type: "forward"
+
+########################################
+# Outputs
+########################################
+Outputs:
+  AlbId:
+    Value: !Ref ALB
+  AlbName:
+    Value: !GetAtt ALB.LoadBalancerName
+  AlbDNSName:
+    Value: !GetAtt ALB.DNSName

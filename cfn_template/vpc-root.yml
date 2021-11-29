@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  VPCCidrBlock:
+    Description: VPC Cidr Block
+    Type: String
+    Default: "192.168.0.0/16"
+  SntPubACidrBlock:
+    Description: Pub A Cidr Block
+    Type: String
+    Default: "192.168.1.0/24"
+  SntPubCCidrBlock:
+    Description: Pub C Cidr Block
+    Type: String
+    Default: "192.168.2.0/24"
+  SntWapACidrBlock:
+    Description: Wap A Cidr Block
+    Type: String
+    Default: "192.168.11.0/24"
+  SntWapCCidrBlock:
+    Description: Wap C Cidr Block
+    Type: String
+    Default: "192.168.12.0/24"
+  SntRdsACidrBlock:
+    Description: Rds A Cidr Block
+    Type: String
+    Default: "192.168.21.0/24"
+  SntRdsCCidrBlock:
+    Description: Rds C Cidr Block
+    Type: String
+    Default: "192.168.22.0/24"
+  MyIP:
+    Description: your my ip
+    Type: String
+    Default: 0.0.0.0/0
+  KeyPair:
+    Description: Key Pair Name
+    Type: String
+    Default: your-key-pair
+  CfnTemplateURL:
+    Description: S3 Bucket Name
+    Type: String
+    Default: bucket-name
+########################################
+# Resource
+########################################
+Resources:
+  VPCNetwork:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${CfnTemplateURL}.s3.ap-northeast-1.amazonaws.com/template/vpc.yml"
+      Parameters:
+        PJName: !Ref PJName
+        EnvName: !Ref EnvName
+        VPCCidrBlock: !Ref VPCCidrBlock
+        SntPubACidrBlock: !Ref SntPubACidrBlock
+        SntPubCCidrBlock: !Ref SntPubCCidrBlock
+        SntWapACidrBlock: !Ref SntWapACidrBlock
+        SntWapCCidrBlock: !Ref SntWapCCidrBlock
+        SntRdsACidrBlock: !Ref SntRdsACidrBlock
+        SntRdsCCidrBlock: !Ref SntRdsCCidrBlock
+  VPCSgp:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${CfnTemplateURL}.s3.ap-northeast-1.amazonaws.com/template/sg.yml"
+      Parameters:
+        PJName: !Ref PJName
+        EnvName: !Ref EnvName
+        VpcId: !GetAtt VPCNetwork.Outputs.VpcId
+        MyIP: !Ref MyIP
+  #
+  EC2Wrp001:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${CfnTemplateURL}.s3.ap-northeast-1.amazonaws.com/template/ec2.yml"
+      Parameters:
+        PJName: !Ref PJName
+        EnvName: !Ref EnvName
+        SntId: !GetAtt VPCNetwork.Outputs.SntPubAId
+        SgpId: !GetAtt VPCSgp.Outputs.SgpWrpId
+        AZ: a
+        ServerName: wrp
+        KeyPair: !Ref KeyPair
+
+########################################
+# OutPuts
+########################################
+Outputs:
+  VpcId:
+    Value: !GetAtt VPCNetwork.Outputs.VpcId
+    Export:
+      Name: CSVpcId
+  SntPubAId:
+    Value: !GetAtt VPCNetwork.Outputs.SntPubAId
+    Export:
+      Name: CSSntPubAId
+  #EC2Wrp001:
+  #  Value: !GetAtt EC2Wrp001.Outputs.EC2Id
+  #  Export:
+  #    Name: CSEC2Wrp001

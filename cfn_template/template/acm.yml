@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  DNSDomain:
+    Type: String
+    Description: domain name
+    Default: "example.com"
+  RecordName:
+    Type: String
+    Description: A RecordName
+    Default: "demo22"
+  HostZoneId:
+    Type: String
+    Description: HostZone ID
+    Default: Z00XXXXXXXXXXXXXXXXX
+
+########################################
+# Resources
+########################################
+Resources:
+  # --------------------
+  #  ACM
+  # --------------------
+  ACM:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub "${RecordName}.${DNSDomain}"
+      # DNS検証
+      DomainValidationOptions:
+        - DomainName: !Sub "${RecordName}.${DNSDomain}"
+          # ValidationDomain: !Ref DNSDomain
+          HostedZoneId: !Sub "${HostZoneId}"
+      SubjectAlternativeNames:
+        - !Sub "${RecordName}.${DNSDomain}"
+      ValidationMethod: DNS
+      Tags:
+        - Key: Name
+          Value: !Sub "${RecordName}.${DNSDomain}"
+
+########################################
+# Outputs
+########################################
+Outputs:
+  AcmArn:
+    Value: !Ref ACM

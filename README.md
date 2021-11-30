@@ -231,3 +231,99 @@ Resources:
                 EvaluateTargetHealth: true
 
 ```
+
+
+- RDS
+```yml
+AWSTemplateFormatVersion: "2010-09-09"
+
+########################################
+# Parameters
+########################################
+Parameters:
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+  SntRdsAId:
+    Description: Snt Pub A Id
+    Type: String
+    Default: snt-xxx
+  SntRdsCId:
+    Description: Snt Pub C Id
+    Type: String
+    Default: snt-xxx
+  SgpId:
+    Description: Security Groups
+    Type: String
+    Default: "sgp-xxxxx"
+
+########################################
+# Resource
+########################################
+Resources:
+  # DB Subnet Group
+  #RDSDBSubnetGroup:
+  #  Type: AWS::RDS::DBSubnetGroup
+  #  Properties:
+  #    SubnetIds:
+  #      - !Ref "SntRdsAId"
+  #      - !Ref "SntRdsCId"
+  #    # DBSubnetGroupName: !Sub ${PJName}-${EnvName}-dbs-001
+  DBParameterGroup:
+    Type: "AWS::RDS::DBParameterGroup"
+    Properties:
+      # aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
+      Family: mariadb10.5
+      Description: My DB Parameter Group
+      Parameters:
+        character_set_client: utf8mb4
+        character_set_connection: utf8mb4
+        character_set_database: utf8mb4
+        character_set_filesystem: utf8mb4
+        character_set_results: utf8mb4
+        character_set_server: utf8mb4
+        max_allowed_packet: 10485760
+        max_connect_errors: 999999999
+        slave_max_allowed_packet: 10485760
+        time_zone: "Asia/Tokyo"
+
+  RDSDBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: !Sub ${PJName}-${EnvName}-rds-mariadb-002
+      AllocatedStorage: 20
+      DBInstanceClass: "db.t3.micro"
+      Engine: "mariadb"
+      MasterUsername: "root"
+      MasterUserPassword: "REPLACEME"
+      DBName: "wordpress"
+      PreferredBackupWindow: "19:00-19:30"
+      BackupRetentionPeriod: 2
+      PreferredMaintenanceWindow: "mon:20:00-mon:20:30"
+      MultiAZ: true
+      EngineVersion: "10.5.12"
+      AutoMinorVersionUpgrade: false
+      PubliclyAccessible: false
+      StorageType: "gp2"
+      Port: 3306
+      CopyTagsToSnapshot: true
+      DBSubnetGroupName: "default-vpc-004c566ea8030154f"
+      VPCSecurityGroups:
+        - "sg-0aa02370a97f478e8"
+      MaxAllocatedStorage: 100
+      DBParameterGroupName: "demo22-test-parametergroup"
+      OptionGroupName: "default:mariadb-10-5"
+      MonitoringRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/rds-monitoring-role"
+      CACertificateIdentifier: "rds-ca-2019"
+```

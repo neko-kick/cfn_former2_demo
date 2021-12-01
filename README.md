@@ -318,12 +318,41 @@ Resources:
       StorageType: "gp2"
       Port: 3306
       CopyTagsToSnapshot: true
-      DBSubnetGroupName: "default-vpc-004c566ea8030154f"
+      DBSubnetGroupName: "default-vpc-xxxxx"
       VPCSecurityGroups:
-        - "sg-0aa02370a97f478e8"
+        - "sg-xxxxx"
       MaxAllocatedStorage: 100
       DBParameterGroupName: "demo22-test-parametergroup"
       OptionGroupName: "default:mariadb-10-5"
       MonitoringRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/rds-monitoring-role"
       CACertificateIdentifier: "rds-ca-2019"
+```
+
+- Edp
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+    EC2VPCEndpoint:
+        Type: "AWS::EC2::VPCEndpoint"
+        Properties:
+            VpcEndpointType: "Interface"
+            VpcId: [VPC_ID]
+            ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssm"
+            PolicyDocument: |
+                {
+                  "Statement": [
+                    {
+                      "Action": "*", 
+                      "Effect": "Allow", 
+                      "Principal": "*", 
+                      "Resource": "*"
+                    }
+                  ]
+                }
+            SubnetIds: 
+              - [SUBA_ID]
+              - [SUBC_ID]
+            PrivateDnsEnabled: true
+            SecurityGroupIds: 
+              - [SGP_ID]
 ```

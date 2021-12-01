@@ -356,3 +356,18 @@ Resources:
             SecurityGroupIds: 
               - [SGP_ID]
 ```
+
+
+- IAM Role 
+```yaml
+   IAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/"
+            RoleName: "roleEc2SSMAgent"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+            Description: "Allows EC2 instances to call AWS services on your behalf."
+```

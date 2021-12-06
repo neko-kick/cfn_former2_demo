@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ""
+########################################
+# Resource
+########################################
+Resources:
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - "demo.sample.com"
+        Origins:
+          # ALB
+          - ConnectionAttempts: 3
+            ConnectionTimeout: 10
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 5
+              OriginProtocolPolicy: "https-only"
+              OriginReadTimeout: 30
+              OriginSSLProtocols:
+                - "TLSv1"
+                - "TLSv1.1"
+                - "TLSv1.2"
+            DomainName: "alb.sample.com"
+            Id: "alb.sample.com"
+            OriginCustomHeaders:
+              - {}
+            OriginPath: ""
+          # S3
+          - ConnectionAttempts: 3
+            ConnectionTimeout: 10
+            DomainName: !Sub "demo21-cmn-apne1-contents.s3.${AWS::Region}.amazonaws.com"
+            Id: !Sub "demo21-cmn-apne1-contents.s3.${AWS::Region}.amazonaws.com"
+            OriginCustomHeaders:
+              - {}
+            OriginPath: ""
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontCloudFrontOriginAccessIdentity}"
+        OriginGroups:
+          Quantity: 0
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - "HEAD"
+            - "GET"
+          CachedMethods:
+            - "HEAD"
+            - "GET"
+          Compress: true
+          CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6"
+          SmoothStreaming: false
+          TargetOriginId: !Sub "demo21-cmn-apne1-contents.s3.${AWS::Region}.amazonaws.com"
+          ViewerProtocolPolicy: "redirect-to-https"
+        CacheBehaviors:
+          - AllowedMethods:
+              - "HEAD"
+              - "GET"
+            Compress: true
+            CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6"
+            PathPattern: "*"
+            SmoothStreaming: false
+            TargetOriginId: "alb.sample.com"
+            ViewerProtocolPolicy: "redirect-to-https"
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponsePagePath: "/maintenance/403.html"
+            ResponseCode: "403"
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponsePagePath: "/maintenance/404.html"
+            ResponseCode: "404"
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 502
+            ResponsePagePath: "/maintenance/502.html"
+            ResponseCode: "502"
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 503
+            ResponsePagePath: "/maintenance/503.html"
+            ResponseCode: "503"
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 504
+            ResponsePagePath: "/maintenance/504.html"
+            ResponseCode: "504"
+            ErrorCachingMinTTL: 10
+        Comment: "demo21"
+        PriceClass: "PriceClass_All"
+        Enabled: false
+        ViewerCertificate:
+          AcmCertificateArn: !Sub "arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/8d69e535-2ff1-49df-a794-4bce086d24ce"
+          MinimumProtocolVersion: "TLSv1.2_2019"
+          SslSupportMethod: "sni-only"
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: "none"
+        HttpVersion: "http2"
+        DefaultRootObject: ""
+        IPV6Enabled: false
+
+  CloudFrontCloudFrontOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "access identity-test-cloudfront-sorry-001"
+##############

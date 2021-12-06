@@ -36,13 +36,13 @@ Parameters:
 ########################################
 Resources:
   # DB Subnet Group
-  #RDSDBSubnetGroup:
-  #  Type: AWS::RDS::DBSubnetGroup
-  #  Properties:
-  #    SubnetIds:
-  #      - !Ref "SntRdsAId"
-  #      - !Ref "SntRdsCId"
-  #    # DBSubnetGroupName: !Sub ${PJName}-${EnvName}-dbs-001
+  RDSDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      SubnetIds:
+        - !Ref "SntRdsAId"
+        - !Ref "SntRdsCId"
+      # DBSubnetGroupName: !Sub ${PJName}-${EnvName}-dbs-001
   DBParameterGroup:
     Type: "AWS::RDS::DBParameterGroup"
     Properties:

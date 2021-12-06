@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: WebsiteHosting
+
+########################################
+# Parameters
+########################################
+Parameters:
+  # PJ Name
+  PJName:
+    Type: String
+    MinLength: 1
+    MaxLength: 10
+    Default: test
+  # Env Name
+  EnvName:
+    Description: environment name
+    Type: String
+    AllowedValues:
+      - demo
+      - dev
+      - stg
+      - prd
+    Default: dev
+
+  StaticDomain:
+    Type: String
+    Description: domain for static
+    Default: webhosting
+
+  StaticHostedZone:
+    Type: String
+    Description: hosted zone for static
+    Default: example.com
+
+  MyIP:
+    Type: String
+    Description: MyIP
+    Default: 0.0.0.0/0
+
+########################################
+# Resource
+########################################
+Resources:
+  # Bucket
+  StaticBucket:
+    Type: "AWS::S3::Bucket"
+    # DeletionPolicy: Retain
+    # UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub ${StaticDomain}.${StaticHostedZone}
+      # ACL
+      # AccessControl: Private
+
+      # 静的Webサイトホスティング設定
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+      # Bucket Encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  # Bucket Policy
+  StaticBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref StaticBucket
+      PolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "GetObjectOnlySourceIP",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::${StaticDomain}.${StaticHostedZone}/*",
+              "Condition": {
+                "IpAddress": {
+                    "aws:SourceIp": "${MyIP}"
+                }
+              }
+            },
+            {
+              "Sid": "AccessViaCloudFront",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::${StaticDomain}.${StaticHostedZone}/*",
+              "Condition": {
+                "StringEquals": {
+                    "aws:UserAgent": "Amazon CloudFront"
+                }
+              }
+            }
+          ]
+        }
+
+  # R53
+  StaticRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneName: !Sub "${StaticHostedZone}."
+      Name: !Sub "${StaticDomain}.${StaticHostedZone}."
+      Type: CNAME
+      Comment: TestCreated
+      TTL: "300"
+      ResourceRecords:
+        - !Sub "${StaticBucket}.s3-website-${AWS::Region}.amazonaws.com"
+
+########################################
+# OutPuts
+########################################
+Outputs:
+  StaticURL:
+    Value: !Sub "http://${StaticDomain}.${StaticHostedZone}"

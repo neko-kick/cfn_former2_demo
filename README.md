@@ -371,3 +371,55 @@ Resources:
               - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
             Description: "Allows EC2 instances to call AWS services on your behalf."
 ```
+
+
+- IAM Policy
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "former2"
+Description: ""
+Resources:
+    IAMPolicy:
+        Type: "AWS::IAM::Policy"
+        Properties:
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "S3Action",
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObjectAcl",
+                                "s3:GetObject",
+                                "s3:GetBucketAcl",
+                                "s3:GetBucketLocation"
+                            ],
+                            "Resource": [
+                                "arn:aws:s3:::demo-apne1-artifactstore-001/*",
+                                "arn:aws:s3:::demo-apne1-artifactstore-001"
+                            ]
+                        },
+                        {
+                            "Sid": "DecryptCMKKey",
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Decrypt",
+                                "kms:GenerateDataKey"
+                            ],
+                            "Resource": [
+                                "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/alias/demo/s3/key"
+                            ]
+                    }
+                    ]
+                }
+            Roles: 
+              - "sample-role"
+            PolicyName: "s3-action"
+
+```
+
+- 動作確認
+

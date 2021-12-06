@@ -49,6 +49,7 @@ Parameters:
 Resources:
   S3BucketName:
     Type: AWS::S3::Bucket
+    # DeletionPolicy: Retain
     Properties:
       BucketName: !Sub
         - "${PJName}-${EnvName}-${aws_region}-accesslog"

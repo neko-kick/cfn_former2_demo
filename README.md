@@ -1,4 +1,41 @@
 # cfn_former2_demo
+
+- event
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "former2"
+Description: ""
+Resources:
+    EventsRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Name: "rule1-sample-001"
+            Description: "rule1-sample-001"
+            ScheduleExpression: "cron(0 2 ? * 4#3 *)"
+            State: "ENABLED"
+            Targets: 
+              - 
+                Arn: !Sub "arn:aws:ssm:${AWS::Region}::document/AWS-RunPatchBaseline"
+                Id: "Id4b24bcab-53a1-4a6b-b476-d36110c990b0"
+                RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/Amazon_EventBridge_Invoke_Run_Command_aaaaaaa"
+                RunCommandParameters: 
+                    RunCommandTargets: 
+                      - 
+                        Key: "tag:IsExecutePatch"
+                        Values: 
+                          - "tag:True"
+            EventBusName: "default"
+
+
+```
+
+
+
+
+
+
+
 ```yaml
 AWSTemplateFormatVersion: "2010-09-09"
 Metadata:
